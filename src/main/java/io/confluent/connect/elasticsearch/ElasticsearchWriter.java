@@ -16,6 +16,8 @@
 
 package io.confluent.connect.elasticsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -49,6 +51,7 @@ public class ElasticsearchWriter {
   private final Map<String, String> topicToIndexMap;
   private final long flushTimeoutMs;
   private final BulkProcessor<IndexableRecord, ?> bulkProcessor;
+  private final ObjectMapper objectMapper;
 
   private final Set<String> existingMappings;
 
@@ -89,6 +92,7 @@ public class ElasticsearchWriter {
     );
 
     existingMappings = new HashSet<>();
+    objectMapper = new ObjectMapper();
   }
 
   public static class Builder {
@@ -188,6 +192,20 @@ public class ElasticsearchWriter {
     }
   }
 
+  private String fetchEventType(SinkRecord sinkRecord) {
+    try {
+      String json = objectMapper.writeValueAsString(sinkRecord.value());
+      ObjectNode node = new ObjectMapper().readValue(json, ObjectNode.class);
+      if (node.has("name")) {
+        return node.get("name").asText();
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return "_unknown_event_type";
+  }
+
   public void write(Collection<SinkRecord> records) {
     for (SinkRecord sinkRecord : records) {
       final String indexOverride = topicToIndexMap.get(sinkRecord.topic());
@@ -209,10 +227,12 @@ public class ElasticsearchWriter {
         existingMappings.add(index);
       }
 
+      String eventType = fetchEventType(sinkRecord);
+
       final IndexableRecord indexableRecord = DataConverter.convertRecord(
           sinkRecord,
           index,
-          type,
+          eventType,
           ignoreKey,
           ignoreSchema
       );
