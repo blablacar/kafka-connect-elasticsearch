@@ -44,6 +44,7 @@ public class ElasticsearchWriter {
 
   private final JestClient client;
   private final String type;
+  private final boolean isDynamicType;
   private final boolean ignoreKey;
   private final Set<String> ignoreKeyTopics;
   private final boolean ignoreSchema;
@@ -58,6 +59,7 @@ public class ElasticsearchWriter {
   ElasticsearchWriter(
       JestClient client,
       String type,
+      boolean isDynamicType,
       boolean ignoreKey,
       Set<String> ignoreKeyTopics,
       boolean ignoreSchema,
@@ -73,6 +75,7 @@ public class ElasticsearchWriter {
   ) {
     this.client = client;
     this.type = type;
+    this.isDynamicType = isDynamicType;
     this.ignoreKey = ignoreKey;
     this.ignoreKeyTopics = ignoreKeyTopics;
     this.ignoreSchema = ignoreSchema;
@@ -98,6 +101,7 @@ public class ElasticsearchWriter {
   public static class Builder {
     private final JestClient client;
     private String type;
+    private boolean isDynamicType;
     private boolean ignoreKey = false;
     private Set<String> ignoreKeyTopics = Collections.emptySet();
     private boolean ignoreSchema = false;
@@ -117,6 +121,11 @@ public class ElasticsearchWriter {
 
     public Builder setType(String type) {
       this.type = type;
+      return this;
+    }
+
+    public Builder setIsDynamicType(Boolean isDynamic) {
+      this.isDynamicType = isDynamic;
       return this;
     }
 
@@ -176,6 +185,7 @@ public class ElasticsearchWriter {
       return new ElasticsearchWriter(
           client,
           type,
+          isDynamicType,
           ignoreKey,
           ignoreKeyTopics,
           ignoreSchema,
@@ -195,12 +205,12 @@ public class ElasticsearchWriter {
   private String fetchEventType(SinkRecord sinkRecord) {
     try {
       String json = objectMapper.writeValueAsString(sinkRecord.value());
-      ObjectNode node = new ObjectMapper().readValue(json, ObjectNode.class);
-      if (node.has("name")) {
+      ObjectNode node = objectMapper.readValue(json, ObjectNode.class);
+      if (node != null && node.has("name")) {
         return node.get("name").asText();
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      log.error("failed to read json from sink record: " + sinkRecord.value());
     }
 
     return "_unknown_event_type";
@@ -227,7 +237,7 @@ public class ElasticsearchWriter {
         existingMappings.add(index);
       }
 
-      String eventType = fetchEventType(sinkRecord);
+      String eventType = isDynamicType ? fetchEventType(sinkRecord) : type;
 
       final IndexableRecord indexableRecord = DataConverter.convertRecord(
           sinkRecord,
