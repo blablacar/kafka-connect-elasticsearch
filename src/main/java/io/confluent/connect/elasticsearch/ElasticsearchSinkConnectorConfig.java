@@ -67,7 +67,11 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
       + "This avoids retrying in a tight loop under failure scenarios.";
 
   public static final String TYPE_NAME_CONFIG = "type.name";
+  public static final String TYPE_IS_DYNAMIC = "type.dynamic";
+
   private static final String TYPE_NAME_DOC = "The Elasticsearch type name to use when indexing.";
+  private static final String TYPE_DYNAMIC_DOC = "Create Elasticsearch type name dynamically based"
+      + " on name of events. When used, type.name is ignored";
   public static final String TOPIC_INDEX_MAP_CONFIG = "topic.index.map";
   private static final String TOPIC_INDEX_MAP_DOC =
       "A map from Kafka topic name to the destination Elasticsearch index, represented as a list "
@@ -197,6 +201,16 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
         ++order,
         Width.SHORT,
         "Type Name"
+    ).define(
+        TYPE_IS_DYNAMIC,
+        Type.BOOLEAN,
+        false,
+        Importance.HIGH,
+        TYPE_DYNAMIC_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Type Dynamic"
     ).define(
         KEY_IGNORE_CONFIG,
         Type.BOOLEAN,
