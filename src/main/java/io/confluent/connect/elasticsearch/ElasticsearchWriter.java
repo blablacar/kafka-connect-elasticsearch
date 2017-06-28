@@ -16,6 +16,7 @@
 
 package io.confluent.connect.elasticsearch;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -24,11 +25,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.Collections;
 
 import io.confluent.connect.elasticsearch.bulk.BulkProcessor;
 import io.searchbox.action.Action;
@@ -42,6 +43,9 @@ public class ElasticsearchWriter {
 
   private final JestClient client;
   private final String type;
+  private final boolean isDynamicType;
+  private final boolean indexTimestampEnabled;
+  private final String indexTimestampField;
   private final boolean ignoreKey;
   private final Set<String> ignoreKeyTopics;
   private final boolean ignoreSchema;
@@ -55,6 +59,9 @@ public class ElasticsearchWriter {
   ElasticsearchWriter(
       JestClient client,
       String type,
+      boolean isDynamicType,
+      boolean indexTimestampEnabled,
+      String indexTimestampField,
       boolean ignoreKey,
       Set<String> ignoreKeyTopics,
       boolean ignoreSchema,
@@ -70,6 +77,9 @@ public class ElasticsearchWriter {
   ) {
     this.client = client;
     this.type = type;
+    this.isDynamicType = isDynamicType;
+    this.indexTimestampEnabled = indexTimestampEnabled;
+    this.indexTimestampField = indexTimestampField;
     this.ignoreKey = ignoreKey;
     this.ignoreKeyTopics = ignoreKeyTopics;
     this.ignoreSchema = ignoreSchema;
@@ -94,6 +104,9 @@ public class ElasticsearchWriter {
   public static class Builder {
     private final JestClient client;
     private String type;
+    private boolean isDynamicType;
+    private String indexTimestampFiled;
+    private boolean indexTimestampEnabled;
     private boolean ignoreKey = false;
     private Set<String> ignoreKeyTopics = Collections.emptySet();
     private boolean ignoreSchema = false;
@@ -113,6 +126,21 @@ public class ElasticsearchWriter {
 
     public Builder setType(String type) {
       this.type = type;
+      return this;
+    }
+
+    public Builder setIsDynamicType(Boolean isDynamic) {
+      this.isDynamicType = isDynamic;
+      return this;
+    }
+
+    public Builder setIndexTimestampField(String timestampField) {
+      this.indexTimestampFiled = timestampField;
+      return this;
+    }
+
+    public Builder setIndexTimestampEnabled(boolean enabled) {
+      this.indexTimestampEnabled = enabled;
       return this;
     }
 
@@ -172,6 +200,9 @@ public class ElasticsearchWriter {
       return new ElasticsearchWriter(
           client,
           type,
+          isDynamicType,
+          indexTimestampEnabled,
+          indexTimestampFiled,
           ignoreKey,
           ignoreKeyTopics,
           ignoreSchema,
@@ -191,10 +222,15 @@ public class ElasticsearchWriter {
   public void write(Collection<SinkRecord> records) {
     for (SinkRecord sinkRecord : records) {
       final String indexOverride = topicToIndexMap.get(sinkRecord.topic());
-      final String index = indexOverride != null ? indexOverride : sinkRecord.topic();
+      String index = indexOverride != null ? indexOverride : sinkRecord.topic();
       final boolean ignoreKey = ignoreKeyTopics.contains(sinkRecord.topic()) || this.ignoreKey;
       final boolean ignoreSchema =
           ignoreSchemaTopics.contains(sinkRecord.topic()) || this.ignoreSchema;
+
+      ObjectNode node = EventDataUtil.sinkRecordToJsonNode(sinkRecord);
+      String eventType = isDynamicType ? EventDataUtil.fetchEventType(node) : type;
+
+      index = EventDataUtil.toDateIndex(indexTimestampEnabled, index, node, indexTimestampField);
 
       if (!ignoreSchema && !existingMappings.contains(index)) {
         try {
@@ -212,7 +248,7 @@ public class ElasticsearchWriter {
       final IndexableRecord indexableRecord = DataConverter.convertRecord(
           sinkRecord,
           index,
-          type,
+          eventType,
           ignoreKey,
           ignoreSchema
       );
