@@ -16,7 +16,6 @@
 
 package io.confluent.connect.elasticsearch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.kafka.common.utils.SystemTime;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -26,11 +25,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.Collections;
 
 import io.confluent.connect.elasticsearch.bulk.BulkProcessor;
 import io.searchbox.action.Action;
@@ -45,6 +44,8 @@ public class ElasticsearchWriter {
   private final JestClient client;
   private final String type;
   private final boolean isDynamicType;
+  private final boolean indexTimestampEnabled;
+  private final String indexTimestampField;
   private final boolean ignoreKey;
   private final Set<String> ignoreKeyTopics;
   private final boolean ignoreSchema;
@@ -52,7 +53,6 @@ public class ElasticsearchWriter {
   private final Map<String, String> topicToIndexMap;
   private final long flushTimeoutMs;
   private final BulkProcessor<IndexableRecord, ?> bulkProcessor;
-  private final ObjectMapper objectMapper;
 
   private final Set<String> existingMappings;
 
@@ -60,6 +60,8 @@ public class ElasticsearchWriter {
       JestClient client,
       String type,
       boolean isDynamicType,
+      boolean indexTimestampEnabled,
+      String indexTimestampField,
       boolean ignoreKey,
       Set<String> ignoreKeyTopics,
       boolean ignoreSchema,
@@ -76,6 +78,8 @@ public class ElasticsearchWriter {
     this.client = client;
     this.type = type;
     this.isDynamicType = isDynamicType;
+    this.indexTimestampEnabled = indexTimestampEnabled;
+    this.indexTimestampField = indexTimestampField;
     this.ignoreKey = ignoreKey;
     this.ignoreKeyTopics = ignoreKeyTopics;
     this.ignoreSchema = ignoreSchema;
@@ -95,13 +99,14 @@ public class ElasticsearchWriter {
     );
 
     existingMappings = new HashSet<>();
-    objectMapper = new ObjectMapper();
   }
 
   public static class Builder {
     private final JestClient client;
     private String type;
     private boolean isDynamicType;
+    private String indexTimestampFiled;
+    private boolean indexTimestampEnabled;
     private boolean ignoreKey = false;
     private Set<String> ignoreKeyTopics = Collections.emptySet();
     private boolean ignoreSchema = false;
@@ -126,6 +131,16 @@ public class ElasticsearchWriter {
 
     public Builder setIsDynamicType(Boolean isDynamic) {
       this.isDynamicType = isDynamic;
+      return this;
+    }
+
+    public Builder setIndexTimestampField(String timestampField) {
+      this.indexTimestampFiled = timestampField;
+      return this;
+    }
+
+    public Builder setIndexTimestampEnabled(boolean enabled) {
+      this.indexTimestampEnabled = enabled;
       return this;
     }
 
@@ -186,6 +201,8 @@ public class ElasticsearchWriter {
           client,
           type,
           isDynamicType,
+          indexTimestampEnabled,
+          indexTimestampFiled,
           ignoreKey,
           ignoreKeyTopics,
           ignoreSchema,
@@ -202,27 +219,18 @@ public class ElasticsearchWriter {
     }
   }
 
-  private String fetchEventType(SinkRecord sinkRecord) {
-    try {
-      String json = objectMapper.writeValueAsString(sinkRecord.value());
-      ObjectNode node = objectMapper.readValue(json, ObjectNode.class);
-      if (node != null && node.has("name")) {
-        return node.get("name").asText();
-      }
-    } catch (IOException e) {
-      log.error("failed to read json from sink record: " + sinkRecord.value());
-    }
-
-    return "_unknown_event_type";
-  }
-
   public void write(Collection<SinkRecord> records) {
     for (SinkRecord sinkRecord : records) {
       final String indexOverride = topicToIndexMap.get(sinkRecord.topic());
-      final String index = indexOverride != null ? indexOverride : sinkRecord.topic();
+      String index = indexOverride != null ? indexOverride : sinkRecord.topic();
       final boolean ignoreKey = ignoreKeyTopics.contains(sinkRecord.topic()) || this.ignoreKey;
       final boolean ignoreSchema =
           ignoreSchemaTopics.contains(sinkRecord.topic()) || this.ignoreSchema;
+
+      ObjectNode node = EventDataUtil.sinkRecordToJsonNode(sinkRecord);
+      String eventType = isDynamicType ? EventDataUtil.fetchEventType(node) : type;
+
+      index = EventDataUtil.toDateIndex(indexTimestampEnabled, index, node, indexTimestampField);
 
       if (!ignoreSchema && !existingMappings.contains(index)) {
         try {
@@ -236,8 +244,6 @@ public class ElasticsearchWriter {
         }
         existingMappings.add(index);
       }
-
-      String eventType = isDynamicType ? fetchEventType(sinkRecord) : type;
 
       final IndexableRecord indexableRecord = DataConverter.convertRecord(
           sinkRecord,

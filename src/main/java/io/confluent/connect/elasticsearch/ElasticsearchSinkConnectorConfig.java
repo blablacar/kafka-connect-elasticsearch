@@ -72,6 +72,14 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
   private static final String TYPE_NAME_DOC = "The Elasticsearch type name to use when indexing.";
   private static final String TYPE_DYNAMIC_DOC = "Create Elasticsearch type name dynamically based"
       + " on name of events. When used, type.name is ignored";
+
+  public static final String INDEX_TIMESTAMP_ENABLED_CONFIG = "index.timestamp.enabled";
+  private static final String INDEX_TIMESTAMP_ENABLED_DOC = "Enable per day date suffix index";
+
+  public static final String INDEX_TIMESTAMP_FIELD_CONFIG = "index.timestamp.field";
+  private static final String INDEX_TIMESTAMP_FIELD_DOC = "Field of which timestamp"
+      + " is taken from the message.";
+
   public static final String TOPIC_INDEX_MAP_CONFIG = "topic.index.map";
   private static final String TOPIC_INDEX_MAP_DOC =
       "A map from Kafka topic name to the destination Elasticsearch index, represented as a list "
@@ -211,6 +219,26 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
         ++order,
         Width.SHORT,
         "Type Dynamic"
+    ).define(
+        INDEX_TIMESTAMP_ENABLED_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.MEDIUM,
+        INDEX_TIMESTAMP_ENABLED_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Index Timestamp Enabled"
+    ).define(
+        INDEX_TIMESTAMP_FIELD_CONFIG,
+        Type.STRING,
+        "",
+        Importance.MEDIUM,
+        INDEX_TIMESTAMP_FIELD_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Index Timestamp Field"
     ).define(
         KEY_IGNORE_CONFIG,
         Type.BOOLEAN,

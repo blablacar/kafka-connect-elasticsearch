@@ -60,6 +60,10 @@ public class ElasticsearchSinkTask extends SinkTask {
       ElasticsearchSinkConnectorConfig config = new ElasticsearchSinkConnectorConfig(props);
       String type = config.getString(ElasticsearchSinkConnectorConfig.TYPE_NAME_CONFIG);
       boolean isDynamicType = config.getBoolean(ElasticsearchSinkConnectorConfig.TYPE_IS_DYNAMIC);
+      boolean indexTimestampEnabled = config.getBoolean(
+          ElasticsearchSinkConnectorConfig.INDEX_TIMESTAMP_ENABLED_CONFIG);
+      String indexTimestampField = config.getString(
+          ElasticsearchSinkConnectorConfig.INDEX_TIMESTAMP_FIELD_CONFIG);
       boolean ignoreKey =
           config.getBoolean(ElasticsearchSinkConnectorConfig.KEY_IGNORE_CONFIG);
       boolean ignoreSchema =
@@ -105,6 +109,8 @@ public class ElasticsearchSinkTask extends SinkTask {
       ElasticsearchWriter.Builder builder = new ElasticsearchWriter.Builder(this.client)
           .setType(type)
           .setIsDynamicType(isDynamicType)
+          .setIndexTimestampEnabled(indexTimestampEnabled)
+          .setIndexTimestampField(indexTimestampField)
           .setIgnoreKey(ignoreKey, topicIgnoreKey)
           .setIgnoreSchema(ignoreSchema, topicIgnoreSchema)
           .setTopicToIndexMap(topicToIndexMap)
