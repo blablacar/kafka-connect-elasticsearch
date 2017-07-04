@@ -59,6 +59,7 @@ public class ElasticsearchWriter {
   ElasticsearchWriter(
       JestClient client,
       String type,
+      String bulkUriParameters,
       boolean isDynamicType,
       boolean indexTimestampEnabled,
       String indexTimestampField,
@@ -89,7 +90,7 @@ public class ElasticsearchWriter {
 
     bulkProcessor = new BulkProcessor<>(
         new SystemTime(),
-        new BulkIndexingClient(client),
+        new BulkIndexingClient(client, bulkUriParameters),
         maxBufferedRecords,
         maxInFlightRequests,
         batchSize,
@@ -104,6 +105,7 @@ public class ElasticsearchWriter {
   public static class Builder {
     private final JestClient client;
     private String type;
+    private String bulkUriParameters;
     private boolean isDynamicType;
     private String indexTimestampFiled;
     private boolean indexTimestampEnabled;
@@ -126,6 +128,11 @@ public class ElasticsearchWriter {
 
     public Builder setType(String type) {
       this.type = type;
+      return this;
+    }
+
+    public Builder setBulkUriParameters(String bulkUriParameters) {
+      this.bulkUriParameters = bulkUriParameters;
       return this;
     }
 
@@ -200,6 +207,7 @@ public class ElasticsearchWriter {
       return new ElasticsearchWriter(
           client,
           type,
+          bulkUriParameters,
           isDynamicType,
           indexTimestampEnabled,
           indexTimestampFiled,
