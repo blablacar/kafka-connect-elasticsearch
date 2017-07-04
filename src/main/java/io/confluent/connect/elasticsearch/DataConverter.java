@@ -16,6 +16,8 @@
 
 package io.confluent.connect.elasticsearch;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Decimal;
@@ -110,7 +112,15 @@ public class DataConverter {
     }
 
     byte[] rawJsonPayload = JSON_CONVERTER.fromConnectData(record.topic(), schema, value);
-    final String payload = new String(rawJsonPayload, StandardCharsets.UTF_8);
+    String payload = new String(rawJsonPayload, StandardCharsets.UTF_8);
+
+    ObjectNode node = EventDataUtil.sinkRecordToJsonNode(record);
+    // TODO: if not ipv4 pattern.
+    if (node != null && node.has("ip") && "<nil>".equals(node.get("ip").asText())) {
+      node.set("ip", new TextNode("0.0.0.0"));
+      payload = node.toString();
+    }
+
     final Long version = ignoreKey ? null : record.kafkaOffset();
     return new IndexableRecord(new Key(index, type, id), payload, version);
   }

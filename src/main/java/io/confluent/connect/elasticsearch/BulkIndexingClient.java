@@ -19,6 +19,7 @@ package io.confluent.connect.elasticsearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.confluent.connect.elasticsearch.bulk.TkBulk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,7 @@ public class BulkIndexingClient implements BulkClient<IndexableRecord, Bulk> {
     for (IndexableRecord record : batch) {
       builder.addAction(record.toIndexRequest());
     }
-    return builder.build();
+    return new TkBulk(builder);
   }
 
   @Override

@@ -67,7 +67,12 @@ public class EventDataUtil {
 
   protected static String fetchEventType(ObjectNode node) {
     if (node != null && node.has("name")) {
-      return node.get("name").asText();
+      String name = node.get("name").asText();
+      if (name.startsWith("_")) {
+        name = "tk" + name;
+      }
+
+      return name;
     }
 
     return "_unknown_event_type";
