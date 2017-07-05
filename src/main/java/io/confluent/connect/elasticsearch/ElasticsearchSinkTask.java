@@ -59,6 +59,8 @@ public class ElasticsearchSinkTask extends SinkTask {
 
       ElasticsearchSinkConnectorConfig config = new ElasticsearchSinkConnectorConfig(props);
       String type = config.getString(ElasticsearchSinkConnectorConfig.TYPE_NAME_CONFIG);
+      String bulkUriParameters = config.getString(
+          ElasticsearchSinkConnectorConfig.BULK_URL_PARAMETERS);
       boolean isDynamicType = config.getBoolean(ElasticsearchSinkConnectorConfig.TYPE_IS_DYNAMIC);
       boolean indexTimestampEnabled = config.getBoolean(
           ElasticsearchSinkConnectorConfig.INDEX_TIMESTAMP_ENABLED_CONFIG);
@@ -108,6 +110,7 @@ public class ElasticsearchSinkTask extends SinkTask {
 
       ElasticsearchWriter.Builder builder = new ElasticsearchWriter.Builder(this.client)
           .setType(type)
+          .setBulkUriParameters(bulkUriParameters)
           .setIsDynamicType(isDynamicType)
           .setIndexTimestampEnabled(indexTimestampEnabled)
           .setIndexTimestampField(indexTimestampField)

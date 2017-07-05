@@ -20,13 +20,16 @@ import io.searchbox.core.Bulk;
 
 public class TkBulk extends Bulk {
 
-  public TkBulk(Builder builder) {
+  private String uriParameters;
+
+  public TkBulk(Builder builder, String parameters) {
     super(builder);
+    this.uriParameters = parameters == null ? "" : parameters;
     setURI(buildURI());
   }
 
   @Override
   protected String buildURI() {
-    return super.buildURI() + "?pipeline=geoip";
+    return super.buildURI() + this.uriParameters;
   }
 }

@@ -115,8 +115,7 @@ public class DataConverter {
     String payload = new String(rawJsonPayload, StandardCharsets.UTF_8);
 
     ObjectNode node = EventDataUtil.sinkRecordToJsonNode(record);
-    // TODO: if not ipv4 pattern.
-    if (node != null && node.has("ip") && "<nil>".equals(node.get("ip").asText())) {
+    if (node != null && node.has("ip") && !EventDataUtil.isValidIpv4(node.get("ip").asText())) {
       node.set("ip", new TextNode("0.0.0.0"));
       payload = node.toString();
     }

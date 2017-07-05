@@ -25,12 +25,20 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Pattern;
 
 public class EventDataUtil {
   private static final Logger log = LoggerFactory.getLogger(EventDataUtil.class);
 
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  private static final Pattern IPV4_PATTERN = Pattern.compile(
+      "^(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])$");
+
+  public static boolean isValidIpv4(final String ip) {
+    return IPV4_PATTERN.matcher(ip).matches();
+  }
 
   protected static ObjectNode sinkRecordToJsonNode(SinkRecord sinkRecord) {
     try {
@@ -75,10 +83,11 @@ public class EventDataUtil {
       return name;
     }
 
-    return "_unknown_event_type";
+    return "unknown_event_type";
   }
 
   protected static String getDateFromSinkRecord(SinkRecord record) {
     return dateFormat.format(record.timestamp());
   }
+
 }

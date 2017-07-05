@@ -41,8 +41,11 @@ public class BulkIndexingClient implements BulkClient<IndexableRecord, Bulk> {
 
   private final JestClient client;
 
-  public BulkIndexingClient(JestClient client) {
+  private String bulkUriParameters;
+
+  public BulkIndexingClient(JestClient client, String bulkUriParameters) {
     this.client = client;
+    this.bulkUriParameters = bulkUriParameters;
   }
 
   @Override
@@ -51,7 +54,7 @@ public class BulkIndexingClient implements BulkClient<IndexableRecord, Bulk> {
     for (IndexableRecord record : batch) {
       builder.addAction(record.toIndexRequest());
     }
-    return new TkBulk(builder);
+    return new TkBulk(builder, this.bulkUriParameters);
   }
 
   @Override

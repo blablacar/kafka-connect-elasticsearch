@@ -30,6 +30,9 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
   private static final String CONNECTION_URL_DOC =
       "List of Elasticsearch HTTP connection URLs e.g. ``http://eshost1:9200,"
       + "http://eshost2:9200``.";
+  public static final String BULK_URL_PARAMETERS = "bulk.url.parameters";
+  public static final String BULK_URL_PARAMETERS_DOC = "Parameters added in url for bulk import."
+      + "This needs to be started by '?', example '?pipeline=geoip'";
   public static final String BATCH_SIZE_CONFIG = "batch.size";
   private static final String BATCH_SIZE_DOC =
       "The number of records to process as a batch when writing to Elasticsearch.";
@@ -124,6 +127,16 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
         ++order,
         Width.LONG,
         "Connection URLs"
+    ).define(
+        BULK_URL_PARAMETERS,
+        Type.STRING,
+        "",
+        Importance.MEDIUM,
+        BULK_URL_PARAMETERS_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Batch url parameters."
     ).define(
         BATCH_SIZE_CONFIG,
         Type.INT,
