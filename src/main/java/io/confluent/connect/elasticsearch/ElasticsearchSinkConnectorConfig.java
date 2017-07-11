@@ -30,6 +30,9 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
   private static final String CONNECTION_URL_DOC =
       "List of Elasticsearch HTTP connection URLs e.g. ``http://eshost1:9200,"
       + "http://eshost2:9200``.";
+  public static final String BULK_URL_PARAMETERS = "bulk.url.parameters";
+  public static final String BULK_URL_PARAMETERS_DOC = "Parameters added in url for bulk import."
+      + "This needs to be started by '?', example '?pipeline=geoip'";
   public static final String BATCH_SIZE_CONFIG = "batch.size";
   private static final String BATCH_SIZE_DOC =
       "The number of records to process as a batch when writing to Elasticsearch.";
@@ -67,7 +70,19 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
       + "This avoids retrying in a tight loop under failure scenarios.";
 
   public static final String TYPE_NAME_CONFIG = "type.name";
+  public static final String TYPE_IS_DYNAMIC = "type.dynamic";
+
   private static final String TYPE_NAME_DOC = "The Elasticsearch type name to use when indexing.";
+  private static final String TYPE_DYNAMIC_DOC = "Create Elasticsearch type name dynamically based"
+      + " on name of events. When used, type.name is ignored";
+
+  public static final String INDEX_TIMESTAMP_ENABLED_CONFIG = "index.timestamp.enabled";
+  private static final String INDEX_TIMESTAMP_ENABLED_DOC = "Enable per day date suffix index";
+
+  public static final String INDEX_TIMESTAMP_FIELD_CONFIG = "index.timestamp.field";
+  private static final String INDEX_TIMESTAMP_FIELD_DOC = "Field of which timestamp"
+      + " is taken from the message.";
+
   public static final String TOPIC_INDEX_MAP_CONFIG = "topic.index.map";
   private static final String TOPIC_INDEX_MAP_DOC =
       "A map from Kafka topic name to the destination Elasticsearch index, represented as a list "
@@ -112,6 +127,16 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
         ++order,
         Width.LONG,
         "Connection URLs"
+    ).define(
+        BULK_URL_PARAMETERS,
+        Type.STRING,
+        "",
+        Importance.MEDIUM,
+        BULK_URL_PARAMETERS_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Batch url parameters."
     ).define(
         BATCH_SIZE_CONFIG,
         Type.INT,
@@ -197,6 +222,36 @@ public class ElasticsearchSinkConnectorConfig extends AbstractConfig {
         ++order,
         Width.SHORT,
         "Type Name"
+    ).define(
+        TYPE_IS_DYNAMIC,
+        Type.BOOLEAN,
+        false,
+        Importance.HIGH,
+        TYPE_DYNAMIC_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Type Dynamic"
+    ).define(
+        INDEX_TIMESTAMP_ENABLED_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.MEDIUM,
+        INDEX_TIMESTAMP_ENABLED_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Index Timestamp Enabled"
+    ).define(
+        INDEX_TIMESTAMP_FIELD_CONFIG,
+        Type.STRING,
+        "",
+        Importance.MEDIUM,
+        INDEX_TIMESTAMP_FIELD_DOC,
+        group,
+        ++order,
+        Width.SHORT,
+        "Index Timestamp Field"
     ).define(
         KEY_IGNORE_CONFIG,
         Type.BOOLEAN,
