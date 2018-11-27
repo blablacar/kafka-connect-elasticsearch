@@ -23,6 +23,6 @@ public interface BulkClient<R, B> {
 
   B bulkRequest(List<R> batch);
 
-  BulkResponse execute(B req) throws IOException;
+  BulkResponse execute(B req, List<R> batch) throws IOException;
 
 }

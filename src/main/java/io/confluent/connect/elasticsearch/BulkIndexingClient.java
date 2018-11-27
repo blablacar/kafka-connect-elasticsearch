@@ -36,9 +36,8 @@ public class BulkIndexingClient implements BulkClient<IndexableRecord, BulkReque
     return client.createBulkRequest(batch);
   }
 
-  @Override
-  public BulkResponse execute(BulkRequest bulk) throws IOException {
-    return client.executeBulk(bulk);
+  public BulkResponse execute(BulkRequest bulk, List<IndexableRecord> batch) throws IOException {
+    return client.executeBulk(bulk, batch);
   }
 
 }

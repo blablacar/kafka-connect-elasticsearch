@@ -309,7 +309,7 @@ public class JestElasticsearchClient implements ElasticsearchClient {
     return req.build();
   }
 
-  public BulkResponse executeBulk(BulkRequest bulk) throws IOException {
+  public BulkResponse executeBulk(BulkRequest bulk, List<IndexableRecord> batch) throws IOException {
     final BulkResult result = client.execute(((JestBulkRequest) bulk).getBulk());
 
     if (result.isSucceeded()) {
@@ -321,19 +321,24 @@ public class JestElasticsearchClient implements ElasticsearchClient {
     final List<Key> versionConflicts = new ArrayList<>();
     final List<String> errors = new ArrayList<>();
 
+    int index = 0;
     for (BulkResult.BulkResultItem item : result.getItems()) {
       if (item.error != null) {
         final ObjectNode parsedError = (ObjectNode) OBJECT_MAPPER.readTree(item.error);
+
         final String errorType = parsedError.get("type").asText("");
         if ("version_conflict_engine_exception".equals(errorType)) {
           versionConflicts.add(new Key(item.index, item.type, item.id));
-        } else if ("mapper_parse_exception".equals(errorType)) {
+        } else if ("mapper_parse_exception".equals(errorType) || "mapper_parsing_exception".equals(errorType)) {
           retriable = false;
           errors.add(item.error);
+          LOG.error("Failed to index {} : {} with {}", batch.get(index).key.toString(), batch.get(index).payload, item.error);
         } else {
           errors.add(item.error);
+          LOG.error("Failed to index {} : {} with {}", batch.get(index).key.toString(), batch.get(index).payload, item.error);
         }
       }
+      index += 1;
     }
 
     if (!versionConflicts.isEmpty()) {

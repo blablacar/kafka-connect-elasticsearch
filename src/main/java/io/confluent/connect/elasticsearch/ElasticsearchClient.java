@@ -79,7 +79,7 @@ public interface ElasticsearchClient extends AutoCloseable {
    * @return the bulk response
    * @throws IOException if the client cannot execute the request
    */
-  BulkResponse executeBulk(BulkRequest bulk) throws IOException;
+  BulkResponse executeBulk(BulkRequest bulk, List<IndexableRecord> batch) throws IOException;
 
   /**
    * Executes a search.

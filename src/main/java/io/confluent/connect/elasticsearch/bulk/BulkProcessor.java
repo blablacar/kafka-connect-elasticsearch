@@ -370,7 +370,7 @@ public class BulkProcessor<R, B> {
         try {
           log.trace("Executing batch {} of {} records with attempt {}/{}",
                   batchId, batch.size(), attempts, maxAttempts);
-          final BulkResponse bulkRsp = bulkClient.execute(bulkReq);
+          final BulkResponse bulkRsp = bulkClient.execute(bulkReq, batch);
           if (bulkRsp.isSucceeded()) {
             if (attempts > 1) {
               // We only logged failures, so log the success immediately after a failure ...
@@ -398,7 +398,9 @@ public class BulkProcessor<R, B> {
           } else {
             log.error("Failed to execute batch {} of {} records after total of {} attempt(s)",
                     batchId, batch.size(), attempts, e);
-            throw e;
+            // BLABLACAR : Return value is not used
+            //throw e;
+            return null;
           }
         }
       }
